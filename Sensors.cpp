@@ -28,11 +28,11 @@ enum class Object_type{
 struct Sensor_Reading{
     Object_type type;
     int distance;
-    Position pos
+    Position position
     double confidence;
     int objectId;
     int speed;
-    string direction;
+    char direction;
     string signText;
     char trafficLight;
 
@@ -42,7 +42,7 @@ struct Sensor_Reading{
         confidence = -1;
         objectId = -1;
         speed = -1;
-        direction = "";
+        direction = '';
         signText = "";
         trafficLight = '';
     } 
@@ -53,18 +53,19 @@ class Sensor{
     protected:
         Position pos;
         char direction;
-        double accuracy;
+        double distAccuracy;
+        double typeAccuracy;
         int maxrange;
         
 
-        double calcConf(double objdist){
-            if (objdist > maxrange){
+        double calcConf(double objdist, double catfactor){
+            if (objdist >= maxrange){
                 return 0.0;
             }
 
             double distfact = 1.0 - (objdist/double(maxrange));
 
-            double confidence = this->accuracy * distfact;
+            double confidence = distAccuracy * distfact * catfactory;
 
             double noise = ((rand() % 11) -5) / 100.0;
 
@@ -79,14 +80,14 @@ class Sensor{
 
 
     public:
-        Sensor(Position pos, char direc, double acc, int max): pos(pos), direction(direc), Accuracy(acc), maxrange(max){}
+        Sensor(Position pos, char direc, double dacc, double tacc, int max): pos(pos), direction(direc), distAccuracy(dacc), typeAccuracy(tacc), maxrange(max){}
         virtual ~Sensor(){}
         //αρχικοποιηση
-        virtual vector<Sensor_Reading> see(/*"θελει μαλλον βεκτορ με τα αντικειμενα που υπαρχουν στον κοσμο"*/) = 0;
+        virtual vector<Sensor_Reading> see(vector<WorldObject>& objects) = 0;
 
         // ενημερωνει την θεση και την κατευθυνση του αισθητηρα
         // αυτο το κανουμε σε καθε βημα στην main με πχ. Lidar l(carpos); l.updateSensorPos(carpos, cardir);
-        void UpdateSensorPos(Position newpos, char newdirec){
+        void updateSensorPos(Position newpos, char newdirec){
             this->pos = newpos;
             this->direction = newdirec;
         }
@@ -94,83 +95,76 @@ class Sensor{
 
 
 class Lidar: public Sensor{
-    Lidar(Position pos): Sensor(pos,99,87){}
+    public:
+    Lidar(Position pos): Sensor(pos, 'N', 0.99, 0.87, 9){}
 
-    vector<Sensor_Reading> see(/*πρεπει να παιρνει σαν παραμετρους τα αντικειμενα που υπαρχουν στον κοσμο*/) override{
+    vector<Sensor_Reading> see(vector<WorldObject>& objects) override{
         vector<Sensor_Reading> reads;
         //x, y ειναι η θεση του αμαξιου
-        for (auto& obj : Object_type){
+        for (auto& obj : objects){
             int newx = abs(obj.getpos().x - this->pos.x);
             int newy = abs(obj.getpos().y - this->pos.y);
 
-            if (newx <=4 && newy <=4){
-                Sensor_Reading reading;
+            if (newx <= 4 && newy <= 4){
+                double dist = pos.distTo(obj.getpos());
 
-                reading.objectId = obj.getId();
-                reading.pos = obj.getPos();
-                // ελεγχει την ακριβεια στην αποσταση
-                if(Accurecy(this->distanceAccuracy)){
-                    reading.distance = this->position.distTo(obj.getpos());
-                    reading.confidence = 1.0;
-                } else {
-                    reading.distance = -1;
-                    reading.confidence = 0.0;
-                }
+                if (dist <= maxrange){
+                    Sensor_Reading reading;
 
-                if(Accurecy(this->typeAccuracy)){
+                    reading.objectId = obj.getId();
+                    reading.pos = obj.getpos();
+                    reading.distance = dist;
                     reading.type = obj.getType();
-                } else{
-                    reading.type = Unknown;
-                }
 
-                reads.push_back(reading);
+                    double categoryFactor = typeAccuracy / distAccuracy;
+                    reading.confidence = calcConf(dist, categoryFactor);
+
+                    reads.push_back(reading);
+                }
             }
-        }
-        return reads
+        } 
+        return reads;
     }
-}
+};
 
 
 class Radar : public Sensor{
     public:
-    Radar(Position pos, string direc) : Sensor(pos,95,95){
-        this->direction = direc;
-    }
+    Radar(Position pos, char direc) : Sensor(pos, direc, 0.95, 0.95, 12){}
 
 
-
-    vector<Sensor_Reading> see(/*πρεπει να παιρνει σαν παραμετρους τα αντικειμενα που υπαρχουν στον κοσμο*/) override{
+    vector<Sensor_Reading> see(vector<WorldObject>& objects) override{
         vector<Sensor_Reading> reads;
 
-        for (auto& obj : /*Object_type*/){
+        for (auto& obj : objects){
             //ελεγχει αν το αντικειμενο ειναι στατικο η οχι
             if (obj.getspeed() == 0){
                 continue;
             }
 
-            bool inrange = false
-            int newdist
+            bool inrange = false;
+            int newdist = 0;
             // αναλογα με την κατευθυνση που κοιταει κανει την αντιστοιχη αφαιρεση ωστε να βγει θετικο το νουμερο
-            if (this->direction == "NORTH"){
+            if (this->direction == 'N'){
                 int newy = obj.getpos().y - this->pos.y;
                 // αν το νουμερο ειναι αναμεσα στο 0-12 και το αντικειμενο ειναι στην ιδια γραμμη χ με το οχημα 
                 if (newy >= 0 && newy <= 12 && obj.getpos().x == this->pos.x){
                     inrange = true;
                     newdist = newy;     //κραταει την αποσταση
                 }
-            } else if (this->direction == "EAST"){
+            } else if (this->direction == 'E'){
                 int newx = obj.getpos().x - this->pos.x;
                 if (newx >= 0 && newx <= 12 && obj.getpos().y == this->pos.y){
                     inrange = true;
                     newdist = newx;
                 }
-            } else if (this->direction == "SOUTH"){
+            } else if (this->direction == 'S'){
                 int newy = this->pos.y - obj.getpos().y;
                 if (newy >= 0 && newy <= 12 && obj.getpos().x == this->pos.x){
                     inrange = true;
                     newdist = newy;
                 }
-            } else if (this->direction == "WEST"){
+            } else if (this->direction == 'W'){
                 int newx = this->pos.x - obj.getpos().x;
                 if (newx >= 0 && newx <= 12 && obj.getpos().y == this->pos.y){
                     inrange = true;
@@ -184,22 +178,14 @@ class Radar : public Sensor{
                 //αποθηκευση τον στοιχειων
                 reading.speed = obj.getspeed();
                 reading.direction = obj.getDirection();
-                reading.objectId = obj.getObjId();
-                reading.position = obj.getpos();
-                //Για αποσταση
-                if (Accurecy(this->distanceAccuracy)){
-                    reading.distance = newdist;
-                    reading.confidence = 0.95;
-                } else {
-                    reading.distance = -1;
-                    reading.confidence = 0.0;
-                }
-                //για αναγνωριση κατηγοριας
-                if(Accurecy(this->typeAccuracy)){
-                    reading.type = obj.getType();
-                } else{
-                    reading.type = Unknown;
-                }
+                reading.objectId = obj.getId();
+                reading.pos = obj.getpos();
+                reading.type = obj.getType();
+                reading.distance = newdist;
+
+                double categoryFactor = 1.0;
+                reading.confidence = calcConf(newdist, categoryFactor);
+
                 reads.push_back(reading);
             }
         }
@@ -210,52 +196,58 @@ class Radar : public Sensor{
 
 class Camera : public Sensor{
     public:
-    Camera(Position pos, string direc) : Sensor(pos, 87, 95){
-        this->direction = direc;
-    }
+    Camera(Position pos, char direc) : Sensor(pos,direc, 0.87, 0.95, 7){}
 
 
-    vector<Sensor_Reading> see() override{
+    vector<Sensor_Reading> see(vector<WorldObject>& objects) override{
         vector<Sensor_Reading> reads;
 
-        for (auto& obj : object){
+        for (auto& obj : objects){
             bool inrange = false;
 
             int newx = abs(obj.getpos().x - this->pos.x);
             int newy = abs(obj.getpos().y - this->pos.y);
 
-            if (this->direction == "NORTH"){
+            if (this->direction == 'N'){
                 if (obj.getpos().y > this->pos.y && newy <= 7 && newx <=3){
                     inrange = true;
                 }
-            } else if (this->direction == "EAST"){
+            } else if (this->direction == 'E'){
                 if(obj.getpos().x > this->pos.x && newx <= 7 && newy <=3){
                     inrange = true;
                 }
-            } else if (this->direction == "SOUTH"){
+            } else if (this->direction == 'S'){
                 if (obj.getpos().y < this->pos.y && newy <= 7 && newx <=3){
                     inrange = true;
                 }
-            } else if (this->direction =="WEST"){
-                if (obj.getpos().x < this->pos.x && newx <= 7 && newx <=3){
+            } else if (this->direction == 'W'){
+                if (obj.getpos().x < this->pos.x && newx <= 7 && newy <=3){
                     inrange = true;
                 }
             }
 
 
             if (inrange){
-                vector<Sensor_Reading> reading;
+                Sensor_Reading reading;
+
+                double dist = pos.distTo(obj.getpos());
 
                 reading.speed = obj.getspeed();
                 reading.direction = obj.getDirection();
-                reading.objectId = obj.getObjId();
-                reading.position = obj.getpos();
+                reading.objectId = obj.getId();
+                reading.pos = obj.getpos();
+                reading.distance = dist;
+                reading.type = obj.getType();
+                reading.trafficLight = obj.getTrafficLight();
+                reading.signText = obj.getSign();
 
+
+                double categoryFactor = typeAccuracy / distAccuracy;
+                reading.confidence = calcConf(dist, categoryFactor);
+
+                reads.push_back(reading);
             }
-
-
         }
+        return reads;
     }
-
-
-}
+};
