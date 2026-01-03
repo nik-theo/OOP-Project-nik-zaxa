@@ -250,4 +250,5 @@ class Camera : public Sensor{
         }
         return reads;
     }
-};
+}; 
+
