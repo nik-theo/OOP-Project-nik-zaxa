@@ -1,27 +1,28 @@
 #include <iostream>
 #include <string>
 #include <vector>
-// #include "WorldObjects.h"
+#include "Simulator.h"
+#include "Position.h"
 using namespace std;
 
-struct Position {
-    int x;
-    int y;
-};
+// struct Position {
+//     int x;
+//     int y;
+// };
 
 
-class WorldObjects {
-    protected:
-        string id;
-        char glyph;
-        Position pos;
-    public:
-        WorldObjects(string id, char g, int x, int y): id(id), glyph(g), pos({x,y}) {}
-        virtual ~WorldObjects() {}
-        char getGlyph () {
-            return glyph;
-        }
-};
+// class WorldObjects {
+//     protected:
+//         string id;
+//         char glyph;
+//         Position pos;
+//     public:
+//         WorldObjects(string id, char g, int x, int y): id(id), glyph(g), pos({x,y}) {}
+//         virtual ~WorldObjects() {}
+//         char getGlyph () {
+//             return glyph;
+//         }
+// };
 
 
 class Grid {

@@ -3,34 +3,31 @@
 
 #include <iostream>
 #include <string>
+#include "position.h"
 using namespace std;
 
 class WorldObjects {
     protected:
         string id;
         char glyph;
-        int x,y;
+        Position pos;
     public:
-        WorldObjects(string id, char g, int x, int y): id(id), glyph(g), x(x), y(y) {}
+        WorldObjects(string id, char g, Position p): id(move(id)), glyph(g), pos(p) {}
         
-        virtual ~WorldObjects() {}
+        virtual ~WorldObjects() = default;
 
         virtual void update(int current_tick) = 0;
 
-        char getGlyph () {
+        char getGlyph() const{
             return glyph;
         }
 
-        string getId() {
+        string getId() const{
             return id;
         }
 
-        int getX() {
-            return x;
-        }
-
-        int getY() {
-            return y;
+        Position getPosition() const{
+            return pos;
         }
 };
 
