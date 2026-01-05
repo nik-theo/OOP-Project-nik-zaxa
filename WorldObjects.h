@@ -5,7 +5,7 @@
 #include "position.h"
 using namespace std;
 
-enum class Object_type{CAR, BIKE, PARKED_CAR, TRAFFIC_LIGHT, STOP_SIGN, SELF_DRIVING_CAR, UNKNOWN};
+enum class Object_type{Car, Bike, PARKED_CAR, TRAFFIC_LIGHT, STOP_SIGN, SELF_DRIVING_CAR, Unknown};
 
 class WorldObject {
     protected: 
@@ -15,7 +15,7 @@ class WorldObject {
         int speed;
         char direction;
     public:
-        WorldObject(string id, char g. int x, int y, int s = 0, char dir = ' ') : id(id), glyph(g), pos({x,y}), speed(s), direction(dir) {}
+        WorldObject(string id, char g, int x, int y, int s = 0, char dir = ' ') : id(id), glyph(g), pos({x,y}), speed(s), direction(dir) {}
 
         virtual ~WorldObject() {}
 
@@ -82,9 +82,9 @@ class MovingObject : public WorldObject {
     private:
         Object_type type;
     public:
-        MovingObject(string id, Object_type t, char g, int x, int y, int s, char d) : WorldObject(id, g, x, y, s, d), type(t), {}
+        MovingObject(string id, Object_type t, char g, int x, int y, int s, char d) : WorldObject(id, g, x, y, s, d), type(t) {}
 
-        virual ~MovingObject() {}
+        virtual ~MovingObject() {}
 
         void update(int tick) override {
             if (direction == 'N') {

@@ -15,7 +15,7 @@ class SensorFusionEngine {
         SensorFusionEngine(double min) : minConfidenceThreshold(min) {}
         vector<Sensor_Reading> fuseSensorData(const vector<vector<Sensor_Reading>>& allData) {
             vector<Sensor_Reading> totalResult;
-            map<int, vector<Sensor_Reading>> group;
+            map<string, vector<Sensor_Reading>> group;
             // Ομαδοποιηση με βαση το objectId
             for (const auto& readings : allData) {
                 for (const auto& read : readings) {
@@ -90,12 +90,13 @@ class SelfDrivingCar : public WorldObject {
         void update(int current_tick) override {
             vector<vector<Sensor_Reading>> allSensorData;
         }
-
+        
+        
         void makeDecision(const vector<Sensor_Reading>& fusedData) {
             speedState = FULL_SPEED; //Default
-
+            
             for(const auto& r : fusedData) {
-                if (r.type == Object_type::Traffic_Light && (r.trafficLight == 'R' || r.trafficLight == 'Y') && r.distance <= 3) {
+                if (r.type == Object_type::TRAFFIC_LIGHT && (r.trafficLight == 'R' || r.trafficLight == 'Y') && r.distance <= 3) {
                     speedState = STOPPED;
                 }
                 if (r.speed > 0 && r.distance <= 2) {
@@ -103,29 +104,39 @@ class SelfDrivingCar : public WorldObject {
                 }
             }
         }
+        
+        void think(const vector<WorldObject*>& objects) {
+            vector<vector<Sensor_Reading>> allData;
+            for (auto s : sensors) {
+                s->updateSensorPos(this->pos, this->direction);
+                allData.push_back(s->scan(objects));
+            }
+            vector<Sensor_Reading> fused = fusionEngine->fuseSensorData(allData);
+            makeDecision(fused);
+        }
 
         void executeMovement() {
-            if (speedState == STOPPED || currentTargetIdx >= gpsTargets.size()) {
+            if (speedState == STOPPED || (size_t)currentTargetIdx >= gpsTargets.size()) {
                 return; 
             }
             Position target = gpsTargets[currentTargetIdx];
             int step = (speedState == FULL_SPEED) ? 2 : 1;
             //Κινηση με βαση την αποσταση Manhattan
-            if (this->x < target.x) {
-                this->x += min(step, target.x - this->x);
+            if (this->pos.x < target.x) {
+                this->pos.x += min(step, target.x - this->pos.x);
                 direction = 'E';
-            } else if (this->x > target.x) {
-                this->x -= min(step, this->x - target.x);
+            } else if (this->pos.x > target.x) {
+                this->pos.x -= min(step, this->pos.x - target.x);
                 direction = 'W';
-            } else if (this->y < target.y) {
-                this->y += min(step, target.y - this->y);
+            } else if (this->pos.y < target.y) {
+                this->pos.y += min(step, target.y - this->pos.y);
                 direction = 'N';
-            } else if (this->y > target.y) {
-                this->y -= min(step, this->y - target.y);
+            } else if (this->pos.y > target.y) {
+                this->pos.y -= min(step, this->pos.y - target.y);
                 direction = 'S';
             }
             
-            if (this->x == target.x && this->y == target.y) {
+            if (this->pos.x == target.x && this->pos.y == target.y) {
                 currentTargetIdx++;
             }
         }

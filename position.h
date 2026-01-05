@@ -7,7 +7,7 @@ using namespace std;
 struct Position {
     int x,y;
     
-    int ManhattanDist(Position other) const {
+    int distTo(Position other) const {
         return abs(x-other.x) + abs(y - other.y);
     }
 };

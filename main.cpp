@@ -27,6 +27,44 @@ cout << "Example usage: " << endl;
 cout << " ./ oopproj_2025 --seed 12 --dimY 50 --gps 10 20 32 15" << endl;
 }
 
+class SimulationManager {
+    private:
+        Grid* grid;
+        SelfDrivingCar* sdc;
+        vector<WorldObject*> objects;
+        int maxTicks;
+    public:
+        SimulationManager(int x, int y, int t, double conf) : maxTicks(t) {
+            grid = new Grid(x,y);
+            sdc = new SelfDrivingCar("SDC_01", 0, 0, conf/100.0);
+        }
+
+        void addObj(WorldObject* o) {
+            objects.push_back(o);
+        }
+
+        void setGPS(vector<Position> g) {
+            sdc->setGPS(g);
+            objects.push_back(sdc);
+        }
+
+        void run() {
+            cout << "--- INITIAL WORLD ---\n";
+            grid->display(objects, sdc->getPos());
+            for (int t = 0; t< maxTicks; t++) {
+                for (auto o : objects) {
+                    o->update(t);
+                }
+                sdc->think(objects);
+                sdc->executeMovement();
+                cout << "\nTick" << t << " | SDC at (" << sdc->getPos().x << "," << sdc->getPos().y << ")\n";
+                grid->display(objects, sdc->getPos(), 5); // 5x5
+                if (sdc->getPos().x < 0 || sdc->getPos().x >= grid->getWidth() || sdc->getPos().y < 0 || sdc->getPos().y >= grid->getHeight()) {
+                    break;
+                }
+            }
+        }
+};
 
 int main(int argc, char* argv[]) {
     int seed = time(0);
@@ -84,7 +122,7 @@ int main(int argc, char* argv[]) {
         //Κινηση 
         sdc->executeMovement();
         // Οπτικοποιηση
-        world.display();
+        world.display(allObjects, sdc->getPos());
         // Ελεγχος να μην βγει εκτος οριων 
         if (sdc->getPos().x < 0 || sdc->getPos().x >= dimX || sdc->getPos().y < 0 || sdc->getPos().y >= dimY) {
             cout << "Car went out of bounds! Simulation ended.\n";
