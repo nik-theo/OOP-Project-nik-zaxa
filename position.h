@@ -5,9 +5,11 @@
 using namespace std;
 
 struct Position {
-    int x{},y{};
-    Position() = default;
-    Position(int x, int y) : x(x), y(y) {}
+    int x,y;
+    
+    int ManhattanDist(Position other) const {
+        return abs(x-other.x) + abs(y - other.y);
+    }
 };
 
 #endif

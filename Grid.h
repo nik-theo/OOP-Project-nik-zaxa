@@ -1,23 +1,75 @@
 #ifndef GRID_H
 #define GRID_H
 
-#include <array>
+#include <vector>
+#include <iostream>
+#include <iomanip>
 #include "WorldObjects.h"
 
 class Grid {
-    public:
-        static constexpr int width = 40;
-        static constexpr int height = 40;
     private:
-        std::array<std::array<WorldObject*, width>, height> cells{};
+        int w, h;
     public:
-        Grid();
-        bool inBounds(const Position& p) const;
-        WorldObject* get(const Position& p) const;
-        void set(const Position& p, WorldObject* obj);
-        void remove(const Position& p);
+        Grid(int width, int height) : w(width), h(height) {}
 
-        void clear();
+        void display(const vector<WorldObject*>& objs, Position sdcPos, int radius = -1) {
+            for (int i = h-1; i >= 0; i--) {
+                if (radius > 0 && abs(i - sdcPos.y) > radius) {
+                    continue;
+                }
+                cout << setw(2) << i << " | ";
+                for (int j = 0; j < w; j++) {
+                    if (radius > 0 && abs(j - sdcPos.x) > radius) {
+                        continue;
+                    }
+                    char glyph = '.';
+                    for (auto o : objs) {
+                        if (o->getPos().x == j && o->getPos().y == i) {
+                            glyph = o->getGlyph();
+                        }
+                    }
+                }
+                cout << endl;
+            }
+        }
+};
+
+class SimulationManager {
+    private:
+        Grid* grid;
+        SelfDrivingCar* sdc;
+        vector<WorldObject*> objects;
+        int maxTicks;
+    public:
+        SimulationManager(int x, int y, int t, double conf) : maxTicks(t) {
+            grid = new Grid(x,y);
+            sdc = new SelfDrivingCar(0, 0, conf/100.0);
+        }
+
+        void addObj(WorldObject* o) {
+            objects.push_back(o);
+        }
+
+        void setGPS(vector<Position> g) {
+            sdc->setGoals(g);
+            objects.push_back(sdc);
+        }
+
+        void run() {
+            cout << "--- INITIAL WORLD ---\n";
+            grid->display(objects, sdc->getPos());
+            for (int t = 0; t< maxTicks; t++) {
+                for (auto o : objects) {
+                    o->update(t);
+                }
+                sdc->think(objects);
+                cout << "\nTick" << t << " | SDC at (" << sdc->getPos().x << "," << sdc->getPos().y << ")\n";
+                grid->display(objects, sdc->getPos(), 5); // 5x5
+                if (sdc->getPos().x < 0 || sdc->getPos().x >= 40 || sdc->getPos().y < 0 || sdc->getPos().y >= 40) {
+                    break;
+                }
+            }
+        }
 };
 
 #endif

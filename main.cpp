@@ -1,83 +1,12 @@
 #include <iostream>
-#include <string>
 #include <vector>
-#include "Simulator.h"
-#include "Position.h"
+#include <string>
+#include <ctime>
+
+#include "Grid.h"
+#include "Navigation.h"
+#include "WorldObjects.h"
 using namespace std;
-
-// struct Position {
-//     int x;
-//     int y;
-// };
-
-
-// class WorldObjects {
-//     protected:
-//         string id;
-//         char glyph;
-//         Position pos;
-//     public:
-//         WorldObjects(string id, char g, int x, int y): id(id), glyph(g), pos({x,y}) {}
-//         virtual ~WorldObjects() {}
-//         char getGlyph () {
-//             return glyph;
-//         }
-// };
-
-
-class Grid {
-    private:
-        // Πλατος grid
-        int width;
-        // Υψος grid
-        int height;
-        // Πλεγμα απο pointers που ειτε δειχνει στο κενο 
-        // ειτε σε ενα αντικειμενο μεσα στο grid
-        vector<vector<WorldObjects*>> grid;
-    public:
-        Grid(int w, int h): width(w), height(h) {
-            // Αρχικοποιω το vector με κενο δεικτη δεν δειχνει πουθενα ακομα 
-            grid.resize(height, vector <WorldObjects*>(width,nullptr));
-        }
-        // Βαζω αντικειμενο στο grid 
-        bool Object_placement(int x, int y, WorldObjects* object) {
-            if (x >= 0 && x < width && y >= 0 && y < height) {
-                grid[y][x] = object;
-                return true;
-            }
-            return false;
-        }
-        // Απεικονιση του κοσμου 
-        void display() {
-            // Εκτυπωση απο το height-1 για να ειναι το (0,0) κατω αριστερα
-            for (int i = height - 1; i >= 0; i-- ) {
-                // Αριθμος γραμμης 
-                if (i<10) {
-                    cout << i << "  | ";
-                } else {
-                    cout << i << " | ";
-                }
-                for ( int j = 0; j < width; j++ ) {
-                    if ( grid[i][j] == nullptr) {
-                        cout << ". ";
-                    } else {
-                        cout << grid[i][j]->getGlyph() << " ";
-                    }
-                }
-                cout << endl;
-            }
-            // Αξονας χ 
-            cout << "   ";
-            for ( int j = 0; j < width; j++ ) {
-                cout << "--";
-            }
-            cout << endl << "   ";
-            for ( int j = 0; j < width; j++ ) {
-                cout << j % 10 << " ";
-            }
-            cout << endl;
-        }
-};
 
 void printHelp () {
 cout << "Self-Driving Car Simulation" << endl;
@@ -98,34 +27,73 @@ cout << "Example usage: " << endl;
 cout << " ./ oopproj_2025 --seed 12 --dimY 50 --gps 10 20 32 15" << endl;
 }
 
-int main(int argc, char* argv[]) {
-    if ( argc < 2 ) {
-        cout << "No arguments given." << endl;
-        printHelp();
-        return 1;
-    }
 
-    for ( int i = 1; i < argc; i++) {
+int main(int argc, char* argv[]) {
+    int seed = time(0);
+    int dimX = 40, dimY = 40;
+    int ticks = 100;
+    double minConf = 0.4;
+    vector<Position> gpsGoals;
+
+    //γραμμη εντολων
+    for (int i = 1; i <argc; i++) {
         string arg = argv[i];
-        if (arg == "--help") {
+        if ( arg == "--seed") {
+            seed = stoi(argv[++i]);
+        } else if ( arg == "--dimX") {
+            dimX = stoi(argv[++i]);
+        } else if ( arg == "--dimY") {
+            dimY = stoi(argv[++i]);
+        } else if ( arg == "--simulationTicks") {
+            ticks = stoi(argv[++i]);
+        } else if ( arg == "--minConfidenceThreshold") {
+            minConf = stod(argv[++i])/100.0;
+        } else if ( arg == "--gps") {
+            while (i + 1 < argc && argv[i+1][0] != '-') {
+                int x = stoi(argv[++i]);
+                int y = stoi(argv[++i]);
+                gpsGoals.push_back({x,y});
+            }
+        } else if (arg == "--help") {
             printHelp();
             return 0;
         }
     }
-    Grid mygrid(40,40);
-    WorldObjects car1("CAR:1", 'C', 2, 3);
-    WorldObjects tree1("STOP:1", 'S', 5, 5);
-    WorldObjects ParkedCar("PC:1", 'P', 10, 5);
-    WorldObjects tree2("STOP:2", 'S', 1, 7);
-    WorldObjects car2("CAR:2", 'C', 4, 6);
+    if (gpsGoals.empty()) {
+        cout << "Error: --gps coordinates are required!\n";
+        return 1;
+    }
+    srand(seed);
+    cout << "Simulation started with seed: " << seed << endl;
 
+    Grid world(dimX, dimY);
+    vector<WorldObject*> allObjects;
 
-    mygrid.Object_placement(2,3,&car1);
-    mygrid.Object_placement(5,5,&tree1);
-    mygrid.Object_placement(10,5,&ParkedCar);
-    mygrid.Object_placement(1,7,&tree2);
-    mygrid.Object_placement(4,6,&car2);
-    cout << "Start" << endl;
-    mygrid.display();
+    SelfDrivingCar* sdc = new SelfDrivingCar("SDC:1", 0, 0, minConf);
+    sdc->setGPS(gpsGoals);
+    allObjects.push_back(sdc);
+
+    allObjects.push_back(new TrafficLight("TL:1", 5, 5));
+
+    for ( int t = 0; t < ticks; t++ ) {
+        cout << "\n--- TICK " << t << " ---" << endl;
+        for (auto obj : allObjects) {
+            obj->update(t);
+        }
+        vector<vector<Sensor_Reading>> rawData;
+        //Κινηση 
+        sdc->executeMovement();
+        // Οπτικοποιηση
+        world.display();
+        // Ελεγχος να μην βγει εκτος οριων 
+        if (sdc->getPos().x < 0 || sdc->getPos().x >= dimX || sdc->getPos().y < 0 || sdc->getPos().y >= dimY) {
+            cout << "Car went out of bounds! Simulation ended.\n";
+            break;
+        }
+    }
+
+    for (auto obj : allObjects) {
+        delete obj;
+    }
     return 0;
 }
