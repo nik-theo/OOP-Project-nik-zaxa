@@ -70,11 +70,19 @@ class SelfDrivingCar : public WorldObject {
         vector<Sensor*> sensors;
         SensorFusionEngine* fusionEngine;
         vector<Position> gpsTargets;
-        int currentTargetIdx;
+        size_t currentTargetIdx;
 
         enum SpeedState {STOPPED, HALF_SPEED, FULL_SPEED};
         SpeedState speedState;
     public:
+
+        bool isFinished() const { 
+             return currentTargetIdx >= gpsTargets.size() && !gpsTargets.empty(); 
+        }
+        // bool hasArrived() const {
+        //     return navSystem->isFinished();
+        // }
+
         SelfDrivingCar(string id, int x, int y, double minConf) : WorldObject(id, '@', x, y), currentTargetIdx(0), speedState(STOPPED) {
             fusionEngine = new SensorFusionEngine(minConf);
             //Συνθεση αισθητηρων
@@ -94,8 +102,17 @@ class SelfDrivingCar : public WorldObject {
         
         void makeDecision(const vector<Sensor_Reading>& fusedData) {
             speedState = FULL_SPEED; //Default
-            
+
+            if (isFinished()) {
+                speedState = STOPPED;
+                return;
+            }
+            //bool destinationReached = false;
             for(const auto& r : fusedData) {
+                // if (currentTargetIdx >= gpsTargets.size()) {
+                //     destinationReached = true; // <--- ΕΔΩ ΑΛΛΑΖΕΙ
+                //     return; // Stop
+                // }
                 if (r.type == Object_type::TRAFFIC_LIGHT && (r.trafficLight == 'R' || r.trafficLight == 'Y') && r.distance <= 3) {
                     speedState = STOPPED;
                 }
@@ -116,7 +133,7 @@ class SelfDrivingCar : public WorldObject {
         }
 
         void executeMovement() {
-            if (speedState == STOPPED || (size_t)currentTargetIdx >= gpsTargets.size()) {
+            if (speedState == STOPPED || isFinished()) {
                 return; 
             }
             Position target = gpsTargets[currentTargetIdx];

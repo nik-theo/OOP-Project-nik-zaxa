@@ -87,14 +87,17 @@ class MovingObject : public WorldObject {
         virtual ~MovingObject() {}
 
         void update(int tick) override {
+            // if (speed ==0) {
+            //     return;
+            // }
             if (direction == 'N') {
-                pos.y++;
+                pos.y += speed;
             } else if (direction == 'S') {
-                pos.y--;
+                pos.y-= speed;
             } else if (direction == 'E') {
-                pos.x++;
+                pos.x+= speed;
             } else if (direction == 'W') {
-                pos.x--;
+                pos.x-=speed;
             }
         } 
 

@@ -1,7 +1,9 @@
 #ifndef POSITION_H
 #define POSITION_H
-
 #include <cmath>
+
+#include <vector>
+using std::vector;
 using namespace std;
 
 struct Position {
