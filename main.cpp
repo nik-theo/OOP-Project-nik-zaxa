@@ -29,12 +29,13 @@ cout << " ./ oopproj_2025 --seed 12 --dimY 50 --gps 10 20 32 15" << endl;
 
 class SimulationManager {
     private:
+        POV povmode;
+        int maxTicks;
         Grid* grid;
         SelfDrivingCar* sdc;
         vector<WorldObject*> objects;
-        int maxTicks;
     public:
-        SimulationManager(int x, int y, int t, double conf) : maxTicks(t) {
+        SimulationManager(int x, int y, int t, double conf, POV mode) : povmode(mode), maxTicks(t){
             grid = new Grid(x,y);
             sdc = new SelfDrivingCar("SDC_01", 0, 0, conf);
         }
@@ -52,7 +53,7 @@ class SimulationManager {
         
         void run() {
             cout << "--- INITIAL WORLD ---\n";
-            grid->display(objects, sdc->getPos());
+            grid->display(objects, sdc->getPos(), sdc->getDirection(), POV::FULL);
             for (int t = 0; t< maxTicks; t++) {
                 for (auto o : objects) {
                     o->update(t);
@@ -60,7 +61,7 @@ class SimulationManager {
                 sdc->think(objects);
                 sdc->executeMovement();
                 cout << "\nTick" << t << " | SDC at (" << sdc->getPos().x << "," << sdc->getPos().y << ")\n";
-                grid->display(objects, sdc->getPos(), 5); // 5x5
+                grid->display(objects, sdc->getPos(), sdc->getDirection(), povmode, 5); // 5x5
                 if (sdc->isFinished()) {
                     cout << "\n=================================================" << endl;
                     cout << ">>> MISSION COMPLETE: Destination Reached! <<<" << endl;
@@ -72,6 +73,8 @@ class SimulationManager {
                     break;
                 }
             }
+            cout << " \n -----final world-----\n";
+            grid->display(objects, sdc->getPos(), sdc->getDirection(), POV::FULL);
         }
     };
 
@@ -89,81 +92,92 @@ class SimulationManager {
         int seed = time(0);
         int dimX = 40, dimY = 40, ticks = 100;
         int nMCars = 3, nMBikes = 4, nPCars = 5, nStop = 2, nLights = 2;
-    double minConf = 40.0;
-    vector<Position> gpsGoals;
+        double minConf = 0.4;
+        POV povmode = POV::FRONT;
+        vector<Position> gpsGoals;
 
-    // 1. Parsing Command Line Arguments
-    for (int i = 1; i < argc; i++) {
-        string arg = argv[i];
-        if (arg == "--seed") seed = stoi(argv[++i]);
-        else if (arg == "--dimX") dimX = stoi(argv[++i]);
-        else if (arg == "--dimY") dimY = stoi(argv[++i]);
-        else if (arg == "--numMovingCars") nMCars = stoi(argv[++i]);
-        else if (arg == "--numMovingBikes") nMBikes = stoi(argv[++i]);
-        else if (arg == "--numParkedCars") nPCars = stoi(argv[++i]);
-        else if (arg == "--numStopSigns") nStop = stoi(argv[++i]);
-        else if (arg == "--numTrafficLights") nLights = stoi(argv[++i]);
-        else if (arg == "--simulationTicks") ticks = stoi(argv[++i]);
-        else if (arg == "--minConfidenceThreshold") minConf = stod(argv[++i]);
-        else if (arg == "--gps") {
-            while (i + 2 < argc && argv[i+1][0] != '-') {
-                int gx = stoi(argv[++i]);
-                int gy = stoi(argv[++i]);
-                gpsGoals.push_back({gx, gy});
+        // 1. Parsing Command Line Arguments
+        for (int i = 1; i < argc; i++) {
+            string arg = argv[i];
+            if (arg == "--seed") seed = stoi(argv[++i]);
+            else if (arg == "--dimX") dimX = stoi(argv[++i]);
+            else if (arg == "--dimY") dimY = stoi(argv[++i]);
+            else if (arg == "--numMovingCars") nMCars = stoi(argv[++i]);
+            else if (arg == "--numMovingBikes") nMBikes = stoi(argv[++i]);
+            else if (arg == "--numParkedCars") nPCars = stoi(argv[++i]);
+            else if (arg == "--numStopSigns") nStop = stoi(argv[++i]);
+            else if (arg == "--numTrafficLights") nLights = stoi(argv[++i]);
+            else if (arg == "--simulationTicks") ticks = stoi(argv[++i]);
+            else if (arg == "--minConfidenceThreshold") minConf = stod(argv[++i]);
+            else if (arg == "--pov") {
+                string mode =argv[++i];
+                if (mode == "front"){
+                    povmode = POV::FRONT;
+                } else if (mode == "center"){
+                    povmode = POV::CENTERED;
+                } else if (mode == "full"){
+                    povmode = POV::FULL;
+                }
             }
-        } else if (arg == "--help") { printHelp(); return 0; }
+            else if (arg == "--gps") {
+                while (i + 2 < argc && argv[i+1][0] != '-') {
+                    int gx = stoi(argv[++i]);
+                    int gy = stoi(argv[++i]);
+                    gpsGoals.push_back({gx, gy});
+                }
+            } else if (arg == "--help") { printHelp(); return 0; }
+        }
+
+        if (gpsGoals.empty()) {
+            cout << "Error: --gps target coordinates are required!\n";
+            return 1;
+        }
+
+        srand(seed);
+        
+        // 2. Δημιουργία του SimulationManager
+        SimulationManager sim(dimX, dimY, ticks, minConf, povmode);
+
+        // 3. Τοποθέτηση GPS στόχων στο όχημα
+        sim.setGPS(gpsGoals);
+
+        // 4. Δημιουργία και τοποθέτηση όλων των αντικειμένων (WorldObjects)
+        
+        // Moving Cars (C)
+        for(int i=0; i<nMCars; ++i) {
+            Position p = getRandomPos(dimX, dimY);
+            sim.addObj(new MovingObject("CAR:"+to_string(i), Object_type::Car, 'C', p.x, p.y, 1, 'E'));
+        }
+        
+        // Moving Bikes (B)
+        for(int i=0; i<nMBikes; ++i) {
+            Position p = getRandomPos(dimX, dimY);
+            sim.addObj(new MovingObject("BIKE:"+to_string(i), Object_type::Bike, 'B', p.x, p.y, 1, 'N'));
+        }
+
+        // Parked Cars (P)
+        for(int i=0; i<nPCars; ++i) {
+            Position p = getRandomPos(dimX, dimY);
+            sim.addObj(new MovingObject("PARKED:"+to_string(i), Object_type::PARKED_CAR, 'P', p.x, p.y, 0, ' '));
+        }
+
+        // Stop Signs (S)
+        for(int i=0; i<nStop; ++i) {
+            Position p = getRandomPos(dimX, dimY);
+            sim.addObj(new StopSign("STOP:"+to_string(i), p.x, p.y));
+        }
+
+        // Traffic Lights (R/G/Y)
+        for(int i=0; i<nLights; ++i) {
+            Position p = getRandomPos(dimX, dimY);
+            sim.addObj(new TrafficLight("LIGHT:"+to_string(i), p.x, p.y));
+        }
+
+        // 5. Εκτέλεση της Προσομοίωσης
+        sim.run();
+
+        return 0;
     }
-
-    if (gpsGoals.empty()) {
-        cout << "Error: --gps target coordinates are required!\n";
-        return 1;
-    }
-
-    srand(seed);
-    
-    // 2. Δημιουργία του SimulationManager
-    SimulationManager sim(dimX, dimY, ticks, minConf);
-
-    // 3. Τοποθέτηση GPS στόχων στο όχημα
-    sim.setGPS(gpsGoals);
-
-    // 4. Δημιουργία και τοποθέτηση όλων των αντικειμένων (WorldObjects)
-    
-    // Moving Cars (C)
-    for(int i=0; i<nMCars; ++i) {
-        Position p = getRandomPos(dimX, dimY);
-        sim.addObj(new MovingObject("CAR:"+to_string(i), Object_type::Car, 'C', p.x, p.y, 1, 'E'));
-    }
-    
-    // Moving Bikes (B)
-    for(int i=0; i<nMBikes; ++i) {
-        Position p = getRandomPos(dimX, dimY);
-        sim.addObj(new MovingObject("BIKE:"+to_string(i), Object_type::Bike, 'B', p.x, p.y, 1, 'N'));
-    }
-
-    // Parked Cars (P)
-    for(int i=0; i<nPCars; ++i) {
-        Position p = getRandomPos(dimX, dimY);
-        sim.addObj(new MovingObject("PARKED:"+to_string(i), Object_type::PARKED_CAR, 'P', p.x, p.y, 0, ' '));
-    }
-
-    // Stop Signs (S)
-    for(int i=0; i<nStop; ++i) {
-        Position p = getRandomPos(dimX, dimY);
-        sim.addObj(new StopSign("STOP:"+to_string(i), p.x, p.y));
-    }
-
-    // Traffic Lights (R/G/Y)
-    for(int i=0; i<nLights; ++i) {
-        Position p = getRandomPos(dimX, dimY);
-        sim.addObj(new TrafficLight("LIGHT:"+to_string(i), p.x, p.y));
-    }
-
-    // 5. Εκτέλεση της Προσομοίωσης
-    sim.run();
-
-    return 0;
-}
 //     int seed = time(0);
 //     int dimX = 40, dimY = 40;
 //     int ticks = 100;
