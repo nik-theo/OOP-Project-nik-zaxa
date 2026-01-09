@@ -8,26 +8,65 @@
 
 class SelfDrivingCar;
 
+enum class POV{
+    FULL, CENTERED, FRONT
+};
+
 class Grid {
     private:
         int w, h;
     public:
         Grid(int width, int height) : w(width), h(height) {}
 
-        void display(const vector<WorldObject*>& objs, Position sdcPos, int radius = -1) {
-            for (int i = h-1; i >= 0; i--) {
-                if (radius > 0 && abs(i - sdcPos.y) > radius) {
-                    continue;
+        void display(const vector<WorldObject*>& objs, Position sdcPos, char direction, POV mode, int radius = -1) {
+
+            int minX = 0; 
+            int maxX = w - 1;
+            int minY = 0;
+            int maxY = h - 1;
+
+            if (mode == POV::CENTERED && radius > 0){
+                minX = sdcPos.x - radius;
+                maxX = sdcPos.x + radius;
+                minY = sdcPos.y - radius;
+                maxY = sdcPos.y + radius;
+            } else if (mode == POV::FRONT && radius > 0){
+                if (direction == 'N'){
+                    minX = sdcPos.x - radius;
+                    maxX = sdcPos.x + radius;
+                    minY = sdcPos.y;
+                    maxY = sdcPos.y + radius;
+                } else if (direction == 'E'){
+                    minX = sdcPos.x;
+                    maxX = sdcPos.x + radius;
+                    minY = sdcPos.y - radius;
+                    maxY = sdcPos.y + radius;
+                } else if (direction == 'S'){
+                    minX = sdcPos.x - radius;
+                    maxX = sdcPos.x + radius;
+                    minY = sdcPos.y - radius;
+                    maxY = sdcPos.y;
+                } else if (direction == 'W'){
+                    minX = sdcPos.x - radius;
+                    maxX = sdcPos.x;
+                    minY = sdcPos.y - radius;
+                    maxY = sdcPos.y + radius;
                 }
+            }
+
+            minX = max(0, minX);
+            minY = max(0, minY);
+            maxX = min(w - 1, maxX);
+            maxY = min(h - 1, maxY);
+
+            for (int i = maxY; i >= minY; i--) {
                 cout << setw(2) << i << " | ";
-                for (int j = 0; j < w; j++) {
-                    if (radius > 0 && abs(j - sdcPos.x) > radius) {
-                        continue;
-                    }
+                for (int j = minX; j <= maxX; j++) {
                     char glyph = '.';
                     for (auto o : objs) {
                         if (o->getPos().x == j && o->getPos().y == i) {
                             glyph = o->getGlyph();
+                            break;
                         }
                     }
                     cout << glyph << " ";
@@ -44,43 +83,5 @@ class Grid {
             return h;
         }
 };
-
-// class SimulationManager {
-//     private:
-//         Grid* grid;
-//         SelfDrivingCar* sdc;
-//         vector<WorldObject*> objects;
-//         int maxTicks;
-//     public:
-//         SimulationManager(int x, int y, int t, double conf) : maxTicks(t) {
-//             grid = new Grid(x,y);
-//             sdc = new SelfDrivingCar(0, 0, conf/100.0);
-//         }
-
-//         void addObj(WorldObject* o) {
-//             objects.push_back(o);
-//         }
-
-//         void setGPS(vector<Position> g) {
-//             sdc->setGoals(g);
-//             objects.push_back(sdc);
-//         }
-
-//         void run() {
-//             cout << "--- INITIAL WORLD ---\n";
-//             grid->display(objects, sdc->getPos());
-//             for (int t = 0; t< maxTicks; t++) {
-//                 for (auto o : objects) {
-//                     o->update(t);
-//                 }
-//                 sdc->think(objects);
-//                 cout << "\nTick" << t << " | SDC at (" << sdc->getPos().x << "," << sdc->getPos().y << ")\n";
-//                 grid->display(objects, sdc->getPos(), 5); // 5x5
-//                 if (sdc->getPos().x < 0 || sdc->getPos().x >= 40 || sdc->getPos().y < 0 || sdc->getPos().y >= 40) {
-//                     break;
-//                 }
-//             }
-//         }
-// };
 
 #endif
