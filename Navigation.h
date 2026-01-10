@@ -116,6 +116,25 @@ class SelfDrivingCar : public WorldObject {
         }
         
 
+        //checks if the car is in the same row or colom with the object
+        bool isAhead(const Sensor_Reading& r) const {
+            // same colom
+            if (direction == 'N' && r.position.x == pos.x && r.position.y > pos.y)
+                return true;
+            if (direction == 'S' && r.position.x == pos.x && r.position.y < pos.y)
+                return true;
+
+            // same row
+            if (direction == 'E' && r.position.y == pos.y && r.position.x > pos.x)
+                return true;
+            if (direction == 'W' && r.position.y == pos.y && r.position.x < pos.x)
+                return true;
+
+            return false;
+        }
+
+
+
         //function that tells the car where to go next
         void makeDecision(const vector<Sensor_Reading>& fusedData) {
             //flages
@@ -123,7 +142,7 @@ class SelfDrivingCar : public WorldObject {
             bool causion = false;
             //if it has found a stop previous wait
             if (stoptickcount > 0){
-                speedState = STOPPED;
+                //speedState = STOPPED;
                 stoptickcount--;
                 return;
             }
@@ -136,24 +155,36 @@ class SelfDrivingCar : public WorldObject {
             }
 
             for(const auto& r : fusedData) {
-                //yellow or red traffic light within 3 positions
-                if (r.type == Object_type::TRAFFIC_LIGHT && (r.trafficLight == 'R' || r.trafficLight == 'Y') && r.distance <= 3) {
-                    causion = true;
+
+
+                //Traffic lights
+                if (r.type == Object_type::TRAFFIC_LIGHT && isAhead(r)){
+                    //if there is a red infront of it it stops
+                    if (r.trafficLight == 'R' && r.distance == 1){
+                        speedState = STOPPED;
+                        return;
+                    }
+                    //if it is yeallow or red within 3 positions slows down
+                    if ((r.trafficLight == 'R' || r.trafficLight == 'Y') && r.distance <=3){
+                        causion = true;
+                    }
                 }
 
-                //moving object within 2position
-                if (r.speed > 0 && r.distance <= 2) {
+                //moving object within 2 position
+                if (r.speed > 0 && r.distance <= 2 && r.distance != -1) {
                     veryClose = true;
                 }
 
                 //for stop signs
-                if (r.type == Object_type::STOP_SIGN && r.signText == "STOP"){
-                    if (r.distance !=-1 && r.distance <=1 && stoptickcount == 0){
+                if (r.type == Object_type::STOP_SIGN && r.signText == "STOP" && isAhead(r)){
+                    //if it is not stopped and the stop count is zero and the stop sign is right in front of the car it stops
+                    if (r.distance !=-1 && r.distance == 1 && stoptickcount == 0 && speedState != STOPPED){
                         speedState = STOPPED;
                         stoptickcount = 1;
                         return;
                     }
-                    if (r.distance <= 3){
+                    //if it is less than 5 squares away it slows down
+                    if (r.distance <= 4){
                         causion = true;
                     }
                 }
@@ -225,6 +256,7 @@ class SelfDrivingCar : public WorldObject {
                 this->pos.y -= min(step, this->pos.y - target.y);
                 direction = 'S';
             }
+
             //when a checkpoint is reached moves to the next target
             if (this->pos.x == target.x && this->pos.y == target.y) {
                 currentTargetIdx++;
