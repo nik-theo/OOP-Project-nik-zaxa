@@ -5,12 +5,14 @@
 #include "position.h"
 using namespace std;
 
+//type of objects that can exist in the world
 enum class Object_type{Car, Bike, PARKED_CAR, TRAFFIC_LIGHT, STOP_SIGN, SELF_DRIVING_CAR, Unknown};
 
+//Base class for the objects
 class WorldObject {
     protected: 
         string id;
-        char glyph;
+        char glyph;     //characters used for visualization
         Position pos;
         int speed;
         char direction;
@@ -19,6 +21,7 @@ class WorldObject {
 
         virtual ~WorldObject() {}
 
+        //updates the objects state for the given tick  
         virtual void update(int current_tick) = 0;
 
         //Getters
@@ -53,10 +56,17 @@ class WorldObject {
         }
 };
 
+
+
+//traffic light object that cycles between the colours based on the time
 class TrafficLight : public WorldObject {
     public:
         TrafficLight(string id, int x, int y) : WorldObject(id, 'R', x, y) {}
 
+        //updates for every tick the colour of the light
+        /*RED: 4 ticks
+          YELLOW: 2 ticks
+          GREEN: 8 ticks */
         void update(int tick) override {
             int cycle = tick % 14;
             if (cycle < 4) {
@@ -78,6 +88,7 @@ class TrafficLight : public WorldObject {
 };
 
 
+// subclass for all the moving objects
 class MovingObject : public WorldObject {
     private:
         Object_type type;
@@ -86,10 +97,8 @@ class MovingObject : public WorldObject {
 
         virtual ~MovingObject() {}
 
+        //updates the position of the car bases on the speed and direction its going
         void update(int tick) override {
-            // if (speed ==0) {
-            //     return;
-            // }
             if (direction == 'N') {
                 pos.y += speed;
             } else if (direction == 'S') {
@@ -106,16 +115,18 @@ class MovingObject : public WorldObject {
         }
 };
 
+
+//static stop sign
 class StopSign : public WorldObject {
     public:
         StopSign(string id, int x, int y) : WorldObject(id, 'S', x, y) {}
 
-        void update(int tick) override {}
-
+        
         Object_type getType() const override {
             return Object_type::STOP_SIGN;
         }
 
+        //returns the text on the sign
         string getSignText() const override {
             return "STOP";
         }
