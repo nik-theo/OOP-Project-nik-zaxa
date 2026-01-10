@@ -22,7 +22,7 @@ cout << " --numParkedCars <n>               Number of parked cars ( default : 5)
 cout << " --numStopSigns <n>                Number of stop signs (default : 2)" << endl;
 cout << " --numTrafficLights <n>            Number of traffic lights ( default : 2)" << endl;
 cout << " --simulationTicks <n>             Maximum simulation ticks ( default : 100)" << endl;
-cout << " --minConfidenceThreshold <n>      Minimum confidence cutoff ( default : 40)" << endl;
+cout << " --minConfidenceThreshold <n>      Minimum confidence cutoff ( default : 0.4)" << endl;
 cout << " --gps <x1> <y1> [x2 y2 . . .]     GPS target coordinates (required)" << endl;
 cout << " --pov <n>                         POV for visualization (default : front)" << endl;
 cout << " --help                            Show this help message" << endl << endl;
@@ -44,6 +44,12 @@ class SimulationManager {
             //creates the grid and initializes the car
             grid = new Grid(x,y);
             sdc = new SelfDrivingCar("SDC_01", 0, 0, conf);
+        }
+
+        ~SimulationManager(){
+            for (auto& o : objects){
+                delete o;
+            }
         }
 
         //adds objects to the simulation
