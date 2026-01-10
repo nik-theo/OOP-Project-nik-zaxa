@@ -121,12 +121,13 @@ class StopSign : public WorldObject {
     public:
         StopSign(string id, int x, int y) : WorldObject(id, 'S', x, y) {}
 
-        
+        void update(int tick) override {}
+
         Object_type getType() const override {
             return Object_type::STOP_SIGN;
         }
 
-        //returns the text on the sign
+        // returns the text on the sign
         string getSignText() const override {
             return "STOP";
         }
