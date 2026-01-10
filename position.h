@@ -6,9 +6,11 @@
 using std::vector;
 using namespace std;
 
+
 struct Position {
     int x,y;
     
+    //manhattan distance
     int distTo(Position other) const {
         return abs(x-other.x) + abs(y - other.y);
     }
