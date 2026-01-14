@@ -27,7 +27,7 @@ cout << " --gps <x1> <y1> [x2 y2 . . .]     GPS target coordinates (required)" <
 cout << " --pov <n>                         POV for visualization (default : front)" << endl;
 cout << " --help                            Show this help message" << endl << endl;
 cout << "Example usage: " << endl;
-cout << " ./ oopproj_2025 --seed 12 --dimY 50 --gps 10 20 32 15" << endl;
+cout << " ./sdc --seed 11 --dimY 50 --gps 10 20 32 15" << endl;
 }
 
 
