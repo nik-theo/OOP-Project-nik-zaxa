@@ -35,6 +35,7 @@ class SensorFusionEngine {
                 double maxConfFound = -1.0;
                 bool isBike = false;
                 bool isStopsign = false;
+                bool isTrafficLight = false;
 
                 result.objectId = id;
                 //for every object in the group
@@ -45,6 +46,9 @@ class SensorFusionEngine {
                     }
                     if (r.type == Object_type::STOP_SIGN){
                         isStopsign = true;
+                    }
+                    if (r.type == Object_type::TRAFFIC_LIGHT){
+                        isTrafficLight = true;
                     }
                     // adds the distance and the speed from every sensor with the weights of the confidence
                     if (r.distance != -1) {
@@ -58,15 +62,23 @@ class SensorFusionEngine {
                     if (r.confidence > maxConfFound) {
                         maxConfFound = r.confidence;
                         result.type = r.type;
-                        result.signText = r.signText;
-                        result.trafficLight = r.trafficLight;
+                        //result.signText = r.signText;
+                        //result.trafficLight = r.trafficLight;
                         result.position = r.position;
                         result.direction = r.direction;
+                    }
+
+                    if (r.trafficLight != ' ' && r.trafficLight != '\0') {
+                        result.trafficLight = r.trafficLight;
+                    }
+                    // Το ίδιο και για το κείμενο πινακίδας
+                    if (!r.signText.empty()) {
+                        result.signText = r.signText;
                     }
                 }
                 double averageConf = totalConf / data.size();
                 //if the average confidence is less than the acceptable and it is not a bike we dont keep the values
-                if (averageConf < minConfidenceThreshold && !isBike && !isStopsign) {
+                if (averageConf < minConfidenceThreshold && !isBike && !isStopsign && !isTrafficLight) {
                     continue;
                 }
                 //else we keep the average of the values
@@ -142,7 +154,7 @@ class SelfDrivingCar : public WorldObject {
             bool causion = false;
             //if it has found a stop previous wait
             if (stoptickcount > 0){
-                //speedState = STOPPED;
+                speedState = STOPPED;
                 stoptickcount--;
                 return;
             }
@@ -159,19 +171,20 @@ class SelfDrivingCar : public WorldObject {
 
                 //Traffic lights
                 if (r.type == Object_type::TRAFFIC_LIGHT && isAhead(r)){
-                    //if there is a red infront of it it stops
-                    if (r.trafficLight == 'R' && r.distance == 1){
+                    bool isRedOrYellow = (r.trafficLight == 'R' || r.trafficLight == 'Y');
+
+                    if (isRedOrYellow && (r.distance == 1 || (speedState == STOPPED && r.distance<= 3))){
                         speedState = STOPPED;
                         return;
                     }
-                    //if it is yeallow or red within 3 positions slows down
-                    if ((r.trafficLight == 'R' || r.trafficLight == 'Y') && r.distance <=3){
+
+                    if (isRedOrYellow && r.distance <= 3){
                         causion = true;
                     }
                 }
 
                 //moving object within 2 position
-                if (r.speed > 0 && r.distance <= 2 && r.distance != -1) {
+                if (r.speed > 0 && r.distance <= 2 && r.distance != -1){
                     veryClose = true;
                 }
 
