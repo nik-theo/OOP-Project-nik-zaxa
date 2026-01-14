@@ -58,12 +58,12 @@ class WorldObject {
 
 
 
-//traffic light object that cycles between the colours based on the time
+//traffic light object that cycles between the colors based on the time
 class TrafficLight : public WorldObject {
     public:
         TrafficLight(string id, int x, int y) : WorldObject(id, 'R', x, y) {}
 
-        //updates for every tick the colour of the light
+        //updates for every tick the color of the light
         /*RED: 4 ticks
           YELLOW: 2 ticks
           GREEN: 8 ticks */
