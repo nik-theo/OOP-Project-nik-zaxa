@@ -44,9 +44,11 @@ class SensorFusionEngine {
                     if (r.type == Object_type::Bike) {
                         isBike = true;
                     }
+                    //if at least one sensor detects a stop sign
                     if (r.type == Object_type::STOP_SIGN){
                         isStopsign = true;
                     }
+                    //if at least one sensor detects a traffic light
                     if (r.type == Object_type::TRAFFIC_LIGHT){
                         isTrafficLight = true;
                     }
@@ -62,16 +64,16 @@ class SensorFusionEngine {
                     if (r.confidence > maxConfFound) {
                         maxConfFound = r.confidence;
                         result.type = r.type;
-                        //result.signText = r.signText;
-                        //result.trafficLight = r.trafficLight;
                         result.position = r.position;
                         result.direction = r.direction;
                     }
 
+                    // Checking if we have informations about the color of the traffic light.
                     if (r.trafficLight != ' ' && r.trafficLight != '\0') {
+                        // Updating final result
                         result.trafficLight = r.trafficLight;
                     }
-                    // Το ίδιο και για το κείμενο πινακίδας
+                    // The same for the stop signs' text
                     if (!r.signText.empty()) {
                         result.signText = r.signText;
                     }
@@ -171,13 +173,18 @@ class SelfDrivingCar : public WorldObject {
 
                 //Traffic lights
                 if (r.type == Object_type::TRAFFIC_LIGHT && isAhead(r)){
+                    // Checking if the traffic light is red or yellow which means we have to be careful
                     bool isRedOrYellow = (r.trafficLight == 'R' || r.trafficLight == 'Y');
 
+                    // If the treffic light is red or yellow and the distance is 1 then the car stops
+                    // It also stays stopped if it is already stopped at a red or yellow traffic light  
                     if (isRedOrYellow && (r.distance == 1 || (speedState == STOPPED && r.distance<= 3))){
                         speedState = STOPPED;
                         return;
                     }
 
+                    // If there is a red or yellow traffic light at a maximum distance of 3 cells 
+                    // we change the flag "caution" for the car to slow down
                     if (isRedOrYellow && r.distance <= 3){
                         causion = true;
                     }
