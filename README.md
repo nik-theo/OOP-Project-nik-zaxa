@@ -149,7 +149,7 @@ The vehicle operates based on different states. The ```makeDecision``` function 
 
 ⏲ The vehicle constantly checks the data and once the traffic light turns green, the vehicle starts moving again.
 
-5️⃣ *** Execute Movement ***
+5️⃣ ***Execute Movement***
 
 🚗💨 Depending on the ``` speedState ```, the vehicle moves 1 or 2 cells per tick.
 
