@@ -1,8 +1,8 @@
-<p align="center"  style="font-size: 35px;">
+<p align="center"  style="font-size: 55px;">
      SELF-DRIVING CAR PROJECT 🚘
 </p>
 
-<div align="center" style="font-size: 25px;">
+<div align="center" style="font-size: 45px;">
  ΖΑΧΑΡΑΤΟΣ ΔΗΜΗΤΡΗΣ 1115202400048
 
  ΘΕΟΔΟΣΟΠΟΥΛΟΣ ΝΙΚΗΦΟΡΟΣ 1115202400054
