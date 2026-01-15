@@ -86,7 +86,7 @@ The symbols of each object:
 
 ● Inheritance: There is a base class named WorldObject. It is an abstract class that defines the properties such as ID, position, glyph.
 
-There are also subclasses. Objects are divided into static such as TrafficLight or StopSign and moving such as MovingObject. This allows the SimulationManager to manage them polymorphically using a ``` std::vector<WorldObject*> ```
+There are also subclasses. Objects are divided into static such as TrafficLight or StopSign and moving such as MovingObject(Moving Cars, Bikes) . This allows the SimulationManager to manage them polymorphically using a ``` std::vector<WorldObject*> ```
 
 ● Sensor System: Each sensor (Lidar, Radar, Camera) inherits from a common base, but implements its own scan() method. Each sensor returns a SensorReading structure.
 
@@ -95,12 +95,14 @@ There are also subclasses. Objects are divided into static such as TrafficLight 
 
 ● Display: In case two objects are at the same cell, at the same time, the self-driving car(@) always has priority on display.  
 
+The user also has the choice to select the POV of the simulation by giving the corresponding argument. The available POVs are ```front``` and ```center``` and there is a full grid display at the beginning of the simulation and after the self-driving car reaches its target.
+
 ● Movement: The movement is done in discrete steps. Each step is either 1 or 2 cells and there are different speed states(```STOPPED, HALF_SPEED, FULL_SPEED```).
 
 #### 🛠️ Navigation Logic
 ● Sensor Fusion: The fusion methodology uses a weighted average based on confidence. 
 
-A very important assumption in sensor fusion is that if a sensor finds a traffic light, this information can't be falsified by sensors that do not see the color.
+A very important assumption in sensor fusion is that if a sensor finds a traffic light, this information can't be falsified by sensors that do not see the color. The assumptions are also true for the stop signs and for the passing bikes.
 
 ● Vehicle Behavior: The vehicle operates based on different states. The transition from one speed to another depends on "flags" that caute you for danger.
 
